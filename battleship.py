@@ -61,7 +61,13 @@ ships_lengths = {"Aircraft Carrier":5,
 		 "Battleship":4,
 		 "Submarine":3,
 		 "Destroyer":3,
-		 "Patrol Boat":2}
+		 "PT Boat":2}
+
+rem_health = {"Aircraft Carrier":5,
+		 "Battleship":4,
+		 "Submarine":3,
+		 "Destroyer":3,
+		 "PT Boat":2}
 
 
 """ 
@@ -253,7 +259,7 @@ class ShipClasses:
 		self.screen_width = screen_width
 		self.inv_height = inv_height
 		self.center_height = center_height
-		self.ship_list = ['Aircraft Carrier', 'Battleship', 'Destroyer', 'Submarine', 'Patrol Boat'] 
+		self.ship_list = ['Aircraft Carrier', 'Battleship', 'Destroyer', 'Submarine', 'PT Boat'] 
 
 	def storeSprites(self):
 		"""
@@ -283,7 +289,7 @@ class ShipClasses:
 				ss.left = ship_locations
 				ss.bottom = self.center_height - 100
 				self.ship_sprites.append(ss)
-			elif item == 'Patrol Boat':
+			elif item == 'PT Boat':
 				pt = arcade.Sprite('Images/PT.png', SPRITE_SCALING)
 				pt.left = ship_locations
 				pt.bottom = self.center_height - 150
@@ -338,6 +344,19 @@ class Battleship(arcade.Window):
 		self.computer_board = None
 		self.player_grid = [[0 for x in range(COLUMN_COUNT)] for y in range(ROW_COUNT)]
 		self.computer_grid = [[0 for x in range(COLUMN_COUNT)] for y in range(ROW_COUNT)]
+
+		# Initialize player / computer health
+		self.player_health = {'Aircraft Carrier':5,
+		 'Battleship':4,
+		 'Submarine':3,
+		 'Destroyer':3,
+		 'PT Boat':2}
+
+		self.computer_health = {'Aircraft Carrier':5,
+		 'Battleship':4,
+		 'Submarine':3,
+		 'Destroyer':3,
+		 'PT Boat':2}
 
 		arcade.set_background_color(arcade.color.BLACK)
 
@@ -554,16 +573,17 @@ class Battleship(arcade.Window):
 				#ships = ships[1:]
 				
 				if self.orientation == 0 and self.place_horizontal(row, column, ship_length, USER):
-					self.player_ship_coords[self.player_fleet.ship_list[0]] = []
+					#self.player_ship_coords[self.player_fleet.ship_list[0]] = []
 					for i in range(ships_lengths[self.player_fleet.ship_list[0]]):
-						self.player_ship_coords[self.player_fleet.ship_list[0]].append((row, column + i))
+						self.player_ship_coords[(row, column + i)] = self.player_fleet.ship_list[0]
+						print(self.player_fleet.ship_list[0])
 					
 					self.player_fleet.use_ship(self.player_fleet.ship_list[0])
 
 				elif self.orientation == 1 and self.place_vertical(row, column, ship_length, USER):
-					self.player_ship_coords[self.player_fleet.ship_list[0]] = []
+					#self.player_ship_coords[self.player_fleet.ship_list[0]] = []
 					for i in range(ships_lengths[self.player_fleet.ship_list[0]]):
-						self.player_ship_coords[self.player_fleet.ship_list[0]].append((row + i, column))
+						self.player_ship_coords[(row + i, column)] = self.player_fleet.ship_list[0]
 
 					self.player_fleet.use_ship(self.player_fleet.ship_list[0])
 
@@ -593,8 +613,16 @@ class Battleship(arcade.Window):
 					self.computer_board[i].set_texture(self.computer_grid[row][column])
 					self.on_draw()
 					
+					if self.computer_grid[row][column] == 3:
+						self.computer_health[self.computer_ship_coords[(row, column)]] -= 1
+						self.check_sink(row, column, USER)
+						if self.check_win(USER):
+							self.state = GAME_OVER
+					
 					# Call computer's turn to attack player board
 					self.computer_turn()
+
+					
 
 
 
@@ -631,11 +659,21 @@ class Battleship(arcade.Window):
 				o = random.randint(0,1)
 				if o == 0 and self.place_horizontal(x, y, ships_lengths[ship], COMPUTER):
 					valid = True
+					for i in range(ships_lengths[ship]):
+						self.computer_ship_coords[(x, y + i)] = ship
+						print(ship)
 				elif self.place_vertical(x, y, ships_lengths[ship], COMPUTER):
 					valid = True
-		
+					for i in range(ships_lengths[ship]):
+						self.computer_ship_coords[(x + i, y)] = ship
+						print(ship)
+
 
 	def computer_turn(self):
+		"""
+		Simple computer turn generator
+		"""
+
 		valid = False
 		while not valid:			
 			x = random.randint(1, 10) - 1
@@ -645,17 +683,55 @@ class Battleship(arcade.Window):
 				i = x * COLUMN_COUNT + y
 				self.player_board[i].set_texture(self.player_grid[x][y])
 				valid = True
-				self.check_win()
+
+				if self.player_grid[x][y] == 3:
+					#self.player_ship_coords[(x, y)]
+					self.check_sink(x, y, COMPUTER)
+					if self.check_win(COMPUTER):
+						self.state = GAME_OVER
 
 		self.state = COMPUTER
 
 
-	def check_win(self):
+	def check_sink(self, row, column, player):
+		"""
+		If a hit is registered, checks if a ship was sunk
+		"""
+
+		#print(self.player_ship_coords.keys())
+
+		if player == USER and self.computer_health[self.computer_ship_coords[(row, column)]] == 0:
+			print('SUNK')
+			arcade.draw_text("You sank the enemy " + self.computer_ship_coords[(row, column)], SCREEN_WIDTH + OPTIONS // 2, SCREEN_HEIGHT // 2,
+				arcade.color.WHITE, font_size=32,
+				width=OPTIONS, align="center",
+				anchor_x="center", anchor_y="center")
+
+		elif player != USER and self.player_health[self.player_ship_coords[(row, column)]] == 0:
+			arcade.draw_text("The enemey sank your " + self.player_ship_coords[(row, column)], SCREEN_WIDTH + OPTIONS // 2, SCREEN_HEIGHT // 2,
+				arcade.color.WHITE, font_size=32,
+				width=OPTIONS, align="center",
+				anchor_x="center", anchor_y="center")
+
+
+
+	def check_win(self, player):
 		"""
 		Check if either the player of the computer wins
 		"""
 
-		return False
+		if player == USER:
+			for ship in list(ships_lengths.keys()):
+				if self.computer_health[ship] != 0:
+					return False
+
+			return True
+		else:
+			for ship in list(ships_lengths.keys()):
+				if self.player_health[ship] != 0:
+					return False
+
+			return True
 
 
 	def draw_start(self):
@@ -675,6 +751,22 @@ class Battleship(arcade.Window):
 		"""
 
 		arcade.draw_texture_rectangle(SCREEN_WIDTH//2, SCREEN_HEIGHT//2, SCREEN_WIDTH, SCREEN_HEIGHT, arcade.load_texture("Images/instructions.jpg"))
+
+		arcade.draw_text("You are the commander of a fleet of ships.", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2,
+				arcade.color.WHITE, font_size=16,
+				width=SCREEN_WIDTH, align="center",
+				anchor_x="center", anchor_y="center")
+
+		arcade.draw_text("Your goal is to take out the hidden enemy fleet before they take you out. ", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50,
+				arcade.color.WHITE, font_size=16,
+				width=SCREEN_WIDTH, align="center",
+				anchor_x="center", anchor_y="center")
+
+		arcade.draw_text("Place your ships in strategic positions, and hit hard, hit fast, hit often!", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100,
+				arcade.color.WHITE, font_size=16,
+				width=SCREEN_WIDTH, align="center",
+				anchor_x="center", anchor_y="center")
+
 
 		for button in self.button_list_howTo:
 			button.draw()
