@@ -31,16 +31,16 @@ SCREEN_HEIGHT = (HEIGHT + MARGIN) * ROW_COUNT + MARGIN
 TEXT_BOX_HEIGHT = 100
 
 # Game states
-START = -1
-GAME = 0
-DIALOGUE = 1
-COMMANDS = 2
-INSTRUCTIONS = 3
-GAME_OVER = 4
-USER = 5
-COMPUTER = 6
-USER_FINAL = 7
-COMPUTER_FINAL = 8
+START = -1				# Load in state
+GAME = 0				# Action state where player attacks computer board
+DIALOGUE = 1			# Unimplemented, but notifies when hit, miss, sunk, etc.
+COMMANDS = 2			# Not fully implemented, but provides options for player to attack 
+INSTRUCTIONS = 3		# Instructions state
+GAME_OVER = 4			# Game over state with options to view final player/computer boards
+USER = 5				# Initial User state to drop ships
+COMPUTER = 6			# Computer state to attack user board
+USER_FINAL = 7			# Final user state
+COMPUTER_FINAL = 8		# Final computer state
 
 # Set the sprite scaling factor
 SPRITE_SCALING = 0.7
@@ -474,7 +474,7 @@ class Battleship(arcade.Window):
 				self.player_board[j + i].set_texture(self.player_grid[row][column + i])
 			else:
 				self.computer_grid[row][column + i] = 2
-				self.computer_board[j + i].set_texture(2) # Don't show computer ships
+				self.computer_board[j + i].set_texture(0) # Don't show computer ships
 		
 		return True
 
@@ -501,7 +501,7 @@ class Battleship(arcade.Window):
 				self.player_board[j].set_texture(self.player_grid[row + i][column])
 			else:
 				self.computer_grid[row + i][column] = 2
-				self.computer_board[j].set_texture(2) # Don't show computer ships
+				self.computer_board[j].set_texture(0) # Don't show computer ships
 
 		return True
 
@@ -774,7 +774,6 @@ class Battleship(arcade.Window):
 		"""
 
 		if player == USER:
-			return True
 			for ship in list(ships_lengths.keys()):
 				if self.computer_health[ship] != 0:
 					return False
