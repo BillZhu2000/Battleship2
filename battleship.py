@@ -1,5 +1,5 @@
 """
-Classic Battleship Game
+Classic Battleship Game, turn based, 5 ships
 """
 
 import arcade
@@ -272,27 +272,27 @@ class ShipClasses:
 			if item == 'Aircraft Carrier':
 				cv = arcade.Sprite('Images/CV.png', SPRITE_SCALING)
 				cv.left = ship_locations
-				cv.bottom = self.center_height + 50
+				cv.bottom = self.center_height + 80
 				self.ship_sprites.append(cv)
 			elif item == 'Battleship':
 				bb = arcade.Sprite('Images/BB.png', SPRITE_SCALING)
 				bb.left = ship_locations
-				bb.bottom = self.center_height
+				bb.bottom = self.center_height + 30
 				self.ship_sprites.append(bb)
 			elif item == 'Destroyer':
 				dd = arcade.Sprite('Images/DD.png', SPRITE_SCALING)
 				dd.left = ship_locations
-				dd.bottom = self.center_height - 50
+				dd.bottom = self.center_height - 20
 				self.ship_sprites.append(dd)
 			elif item == 'Submarine':
 				ss = arcade.Sprite('Images/SS.png', SPRITE_SCALING)
 				ss.left = ship_locations
-				ss.bottom = self.center_height - 100
+				ss.bottom = self.center_height - 70
 				self.ship_sprites.append(ss)
 			elif item == 'PT Boat':
 				pt = arcade.Sprite('Images/PT.png', SPRITE_SCALING)
 				pt.left = ship_locations
-				pt.bottom = self.center_height - 150
+				pt.bottom = self.center_height - 120
 				self.ship_sprites.append(pt)
 	
 
@@ -366,6 +366,10 @@ class Battleship(arcade.Window):
 		self.button_list_howTo = []
 		self.button_list_commands = []
 		self.button_list_computer = []
+		self.button_list_game_over = []
+
+		# Winner
+		self.winner = -1
 
 		# Create start game buttom which starts the game
 		start_button = StartTextButton(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2, 150, 'Start', self.start_user)
@@ -388,6 +392,13 @@ class Battleship(arcade.Window):
 		# Button to acknowledge computer move and revert to user interface
 		back_to_game = StartTextButton(SCREEN_WIDTH - OPTIONS // 2 + 25, 80, 100, "OK", self.show_game)
 		self.button_list_computer.append(back_to_game)
+
+
+		# Display user board during user turn
+		show_user_board = StartTextButton(SCREEN_WIDTH - OPTIONS // 2 - 25, 80, 200, "USER BOARD", self.show_computer)
+		self.button_list_commands.append(show_user_board)
+		# Game over button
+
 
 
 	def start_user(self):
@@ -422,7 +433,13 @@ class Battleship(arcade.Window):
 		Show the player board and revert to game state
 		"""
 		self.state = GAME
-		self.on_draw()
+		#self.on_draw()
+
+	def show_computer(self):
+		"""
+		Show the player's board and go to computer's state
+		"""
+		self.state = COMPUTER
 
 
 	def set_horizontal(self):
@@ -544,7 +561,6 @@ class Battleship(arcade.Window):
 		Called when the user presses a mouse button.
 		"""
 
-
 		# Change the x/y screen coordinates to player_grid coordinates
 		column = x // (WIDTH + MARGIN)
 		row = y // (HEIGHT + MARGIN)
@@ -599,6 +615,7 @@ class Battleship(arcade.Window):
 		# corner in the margin and go to a player_grid location that doesn't exist
 
 		elif self.state == GAME:
+			check_mouse_press_for_buttons(x, y, self.button_list_commands)
 
 			if row < ROW_COUNT and column < COLUMN_COUNT:
 				i = row * COLUMN_COUNT + column
@@ -618,6 +635,7 @@ class Battleship(arcade.Window):
 						self.check_sink(row, column, USER)
 						if self.check_win(USER):
 							self.state = GAME_OVER
+							return
 					
 					# Call computer's turn to attack player board
 					self.computer_turn()
@@ -689,6 +707,7 @@ class Battleship(arcade.Window):
 					self.check_sink(x, y, COMPUTER)
 					if self.check_win(COMPUTER):
 						self.state = GAME_OVER
+						return
 
 		self.state = COMPUTER
 
@@ -696,20 +715,23 @@ class Battleship(arcade.Window):
 	def check_sink(self, row, column, player):
 		"""
 		If a hit is registered, checks if a ship was sunk
+
+		TODO: Implement dialogue screen to display ship statuses
 		"""
 
 		#print(self.player_ship_coords.keys())
 
 		if player == USER and self.computer_health[self.computer_ship_coords[(row, column)]] == 0:
 			print('SUNK')
-			arcade.draw_text("You sank the enemy " + self.computer_ship_coords[(row, column)], SCREEN_WIDTH + OPTIONS // 2, SCREEN_HEIGHT // 2,
-				arcade.color.WHITE, font_size=32,
+
+			arcade.draw_text("You sank the enemy " + self.computer_ship_coords[(row, column)], SCREEN_WIDTH - OPTIONS // 2, SCREEN_HEIGHT // 2,
+				arcade.color.WHITE, font_size=16,
 				width=OPTIONS, align="center",
 				anchor_x="center", anchor_y="center")
 
 		elif player != USER and self.player_health[self.player_ship_coords[(row, column)]] == 0:
-			arcade.draw_text("The enemey sank your " + self.player_ship_coords[(row, column)], SCREEN_WIDTH + OPTIONS // 2, SCREEN_HEIGHT // 2,
-				arcade.color.WHITE, font_size=32,
+			arcade.draw_text("The enemey sank your " + self.player_ship_coords[(row, column)], SCREEN_WIDTH - OPTIONS // 2, SCREEN_HEIGHT // 2,
+				arcade.color.WHITE, font_size=16,
 				width=OPTIONS, align="center",
 				anchor_x="center", anchor_y="center")
 
@@ -717,7 +739,7 @@ class Battleship(arcade.Window):
 
 	def check_win(self, player):
 		"""
-		Check if either the player of the computer wins
+		Check if either the player of the computer wins by sinking all the ships
 		"""
 
 		if player == USER:
@@ -725,12 +747,14 @@ class Battleship(arcade.Window):
 				if self.computer_health[ship] != 0:
 					return False
 
+			self.winner = USER
 			return True
 		else:
 			for ship in list(ships_lengths.keys()):
 				if self.player_health[ship] != 0:
 					return False
 
+			self.winner = COMPUTER
 			return True
 
 
@@ -757,7 +781,7 @@ class Battleship(arcade.Window):
 				width=SCREEN_WIDTH, align="center",
 				anchor_x="center", anchor_y="center")
 
-		arcade.draw_text("Your goal is to take out the hidden enemy fleet before they take you out. ", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50,
+		arcade.draw_text("Your goal is to take out the hidden enemy fleet before they take you out.", SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50,
 				arcade.color.WHITE, font_size=16,
 				width=SCREEN_WIDTH, align="center",
 				anchor_x="center", anchor_y="center")
@@ -804,8 +828,24 @@ class Battleship(arcade.Window):
 		arcade.start_render()
 		self.computer_board.draw()
 
-		for button in self.button_list_computer:
+		# User command buttons, like go view user board
+		for button in self.button_list_commands:
 			button.draw()
+
+
+	def draw_game_over(self):
+		"""
+		Draw the game over scene, for now blue for win, red for lose
+		"""
+
+		arcade.start_render()
+		if self.winner == USER:
+			arcade.set_background_color(arcade.color.BLUE)
+		else:
+			arcade.set_background_color(arcade.color.RED)
+
+
+	#def draw_dialogue(self):
 
 
 	def on_draw(self):
@@ -826,6 +866,12 @@ class Battleship(arcade.Window):
 
 		elif self.state == COMPUTER:
 			self.draw_user_board()
+
+		elif self.state == GAME_OVER:
+			self.draw_game_over()
+
+		elif self.state == DIALOGUE:
+			self.draw_dialogue()
 
 
 
