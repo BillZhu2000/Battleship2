@@ -39,6 +39,8 @@ INSTRUCTIONS = 3
 GAME_OVER = 4
 USER = 5
 COMPUTER = 6
+USER_FINAL = 7
+COMPUTER_FINAL = 8
 
 # Set the sprite scaling factor
 SPRITE_SCALING = 0.7
@@ -218,27 +220,6 @@ def check_mouse_release_for_buttons(x, y, button_list):
 			button.on_release()
 
 
-class VerticalTextButton(TextButton):
-	def __init__(self, center_x, center_y, width, text, action_function):
-		super().__init__(center_x, center_y, width, 40, text, 18, "Arial")
-		self.action_function = action_function
-
-	def on_release(self):
-		super().on_release()
-		self.action_function()
-
-
-
-class HorizontalTextButton(TextButton):
-	def __init__(self, center_x, center_y, width, text, action_function):
-		super().__init__(center_x, center_y, width, 40, text, 18, "Arial")
-		self.action_function = action_function
-
-	def on_release(self):
-		super().on_release()
-		self.action_function()
-
-
 class StartTextButton(TextButton):
 	def __init__(self, center_x, center_y, width, text, action_function):
 		super().__init__(center_x, center_y, width, 40, text, 18, "Arial")
@@ -367,6 +348,8 @@ class Battleship(arcade.Window):
 		self.button_list_commands = []
 		self.button_list_computer = []
 		self.button_list_game_over = []
+		self.button_list_user_final = []
+		self.button_list_computer_final = []
 
 		# Winner
 		self.winner = -1
@@ -380,8 +363,8 @@ class Battleship(arcade.Window):
 		self.button_list_start.append(how_to_play)
 
 		# Create Horizontal and Vertical Buttons for user when placing ships
-		horizontal_button = HorizontalTextButton(SCREEN_WIDTH - OPTIONS // 2 + 25, 80, 150, "Horizontal", self.set_horizontal)
-		vertical_button = VerticalTextButton(SCREEN_WIDTH - OPTIONS // 2 + 25, 130, 150, "Vertical", self.set_vertical)
+		horizontal_button = StartTextButton(SCREEN_WIDTH - OPTIONS // 2 + 25, 80, 150, "Horizontal", self.set_horizontal)
+		vertical_button = StartTextButton(SCREEN_WIDTH - OPTIONS // 2 + 25, 130, 150, "Vertical", self.set_vertical)
 		self.button_list_user.append(horizontal_button)
 		self.button_list_user.append(vertical_button)
 		
@@ -397,8 +380,17 @@ class Battleship(arcade.Window):
 		# Display user board during user turn
 		show_user_board = StartTextButton(SCREEN_WIDTH - OPTIONS // 2 - 25, 80, 200, "USER BOARD", self.show_computer)
 		self.button_list_commands.append(show_user_board)
+		
 		# Game over button
+		show_user_final = StartTextButton(SCREEN_WIDTH // 2, 50, 150, "User Final", self.show_player_board)
+		show_computer_final = StartTextButton(SCREEN_WIDTH // 2, 110, 150, "Computer Final", self.show_computer_board)
+		self.button_list_game_over.append(show_user_final)
+		self.button_list_game_over.append(show_computer_final)
 
+		# More game over buttons for accessing
+		back_to_game_over = StartTextButton(SCREEN_WIDTH - OPTIONS // 2, 50, 300, "Back to Game Over", self.show_game_over)
+		self.button_list_user_final.append(back_to_game_over)
+		self.button_list_computer_final.append(back_to_game_over)
 
 
 	def start_user(self):
@@ -442,6 +434,12 @@ class Battleship(arcade.Window):
 		self.state = COMPUTER
 
 
+	def show_game_over(self):
+		"""
+		Set the scene to game over
+		"""
+		self.state = GAME_OVER
+
 	def set_horizontal(self):
 		"""
 		Set the ship horizontal
@@ -476,7 +474,7 @@ class Battleship(arcade.Window):
 				self.player_board[j + i].set_texture(self.player_grid[row][column + i])
 			else:
 				self.computer_grid[row][column + i] = 2
-				self.computer_board[j + i].set_texture(0) # Don't show computer ships
+				self.computer_board[j + i].set_texture(2) # Don't show computer ships
 		
 		return True
 
@@ -503,7 +501,7 @@ class Battleship(arcade.Window):
 				self.player_board[j].set_texture(self.player_grid[row + i][column])
 			else:
 				self.computer_grid[row + i][column] = 2
-				self.computer_board[j].set_texture(0) # Don't show computer ships
+				self.computer_board[j].set_texture(2) # Don't show computer ships
 
 		return True
 
@@ -536,24 +534,46 @@ class Battleship(arcade.Window):
 
 
 
-	def update_board(self, player):
+	def show_player_board(self):
 		"""
-		Update the sprite list to reflect the contents of the 2d player_grid
+		Show the player board (final)
 		"""
 
-		if player == USER:
-			for row in range(len(self.player_grid)):
-				for column in range(len(self.player_grid[0])):
-					v = self.player_grid[row][column]
-					i = row * COLUMN_COUNT + column
-					self.player_board[i].set_texture(v)
-		else:
-			for row in range(len(self.computer_grid)):
-				for column in range(len(self.computer_grid[0])):
-					v = self.computer_grid[row][column]
-					i = row * COLUMN_COUNT + column
-					self.computer_board[i].set_texture(v)
+		# Set the state to user final
+		self.state = USER_FINAL
+		arcade.set_background_color(arcade.color.BLACK)
+		for row in range(len(self.player_grid)):
+			for column in range(len(self.player_grid[0])):
+				v = self.player_grid[row][column]
+				i = row * COLUMN_COUNT + column
+				self.player_board[i].set_texture(v)
 
+		arcade.start_render()
+		self.player_board.draw()
+
+		for button in self.button_list_user_final:
+			button.draw()
+
+
+	def show_computer_board(self):
+		"""
+		Show the computer board (final)
+		"""
+
+		# Set the state to computer final
+		self.state = COMPUTER_FINAL
+		arcade.set_background_color(arcade.color.BLACK)
+		for row in range(len(self.computer_grid)):
+			for column in range(len(self.computer_grid[0])):
+				v = self.computer_grid[row][column]
+				i = row * COLUMN_COUNT + column
+				self.computer_board[i].set_texture(v)		
+
+		arcade.start_render()
+		self.computer_board.draw()
+		
+		for button in self.button_list_computer_final:
+			button.draw()
 
 
 	def on_mouse_press(self, x, y, button, modifiers):
@@ -640,8 +660,13 @@ class Battleship(arcade.Window):
 					# Call computer's turn to attack player board
 					self.computer_turn()
 
+		elif self.state == GAME_OVER:
+			check_mouse_press_for_buttons(x, y, self.button_list_game_over)
+		elif self.state == USER_FINAL:
+			check_mouse_press_for_buttons(x, y, self.button_list_user_final)
+		elif self.state == COMPUTER_FINAL:
+			check_mouse_press_for_buttons(x, y, self.button_list_computer_final)
 					
-
 
 
 	def on_mouse_release(self, x, y, button, key_modifiers):
@@ -659,6 +684,12 @@ class Battleship(arcade.Window):
 			check_mouse_release_for_buttons(x, y, self.button_list_commands)
 		elif self.state == COMPUTER:
 			check_mouse_release_for_buttons(x, y, self.button_list_computer)
+		elif self.state == GAME_OVER:
+			check_mouse_release_for_buttons(x, y, self.button_list_game_over)
+		elif self.state == USER_FINAL:
+			check_mouse_release_for_buttons(x, y, self.button_list_user_final)
+		elif self.state == COMPUTER_FINAL:
+			check_mouse_release_for_buttons(x, y, self.button_list_computer_final)
 
 
 	def computer_place_ships(self):
@@ -743,6 +774,7 @@ class Battleship(arcade.Window):
 		"""
 
 		if player == USER:
+			return True
 			for ship in list(ships_lengths.keys()):
 				if self.computer_health[ship] != 0:
 					return False
@@ -844,6 +876,10 @@ class Battleship(arcade.Window):
 		else:
 			arcade.set_background_color(arcade.color.RED)
 
+		for button in self.button_list_game_over:
+			button.draw()
+
+
 
 	#def draw_dialogue(self):
 
@@ -872,6 +908,12 @@ class Battleship(arcade.Window):
 
 		elif self.state == DIALOGUE:
 			self.draw_dialogue()
+
+		elif self.state == USER_FINAL:
+			self.show_player_board()
+
+		elif self.state == COMPUTER_FINAL:
+			self.show_computer_board()
 
 
 
