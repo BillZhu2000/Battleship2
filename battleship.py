@@ -310,8 +310,6 @@ class Battleship(arcade.Window):
 		super().__init__(width, height)
 
 		# Create user/computer interfaces and game state
-		self.user = False
-		self.computer = False
 		self.state = START
 		self.orientation = 0
 
@@ -520,16 +518,14 @@ class Battleship(arcade.Window):
 				sprite.textures = texture_list
 				sprite.set_texture(self.player_grid[row][column])
 				sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
-				#sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
 				sprite.center_y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
 				self.player_board.append(sprite)
 
 				sprite = arcade.Sprite()
 				sprite.textures = texture_list
 				sprite.set_texture(self.computer_grid[row][column])
-				sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2
-				#sprite.center_y = SCREEN_HEIGHT - (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
-				sprite.center_y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
+				sprite.center_x = (MARGIN + WIDTH) * column + MARGIN + WIDTH // 2	
+			sprite.center_y = (MARGIN + HEIGHT) * row + MARGIN + HEIGHT // 2
 				self.computer_board.append(sprite)
 
 
